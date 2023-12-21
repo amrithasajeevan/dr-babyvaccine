@@ -26,6 +26,8 @@ class Registeruser(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # Create a token for the registered user
+            token, created = Token.objects.get_or_create(user=user)
             
             # Get the email of the registered user
             user_email = user.email
@@ -40,7 +42,7 @@ class Registeruser(APIView):
             send_mail(subject, message, settings.EMAIL_HOST_USER, [user_email], fail_silently=False)
 
             # Assuming token creation or any other response data you want to send back
-            return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
+            return Response({'data': serializer.data, 'token': token.key}, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
