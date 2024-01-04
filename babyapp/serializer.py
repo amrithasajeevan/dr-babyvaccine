@@ -64,19 +64,56 @@ class loginserializer(serializers.Serializer):
 
 
 
+# class ChildSerializer(serializers.ModelSerializer):
+#     parent_username = serializers.CharField(write_only=True, source='parent')
+
+#     class Meta:
+#         model = Child
+#         fields = ['id', 'first_name', 'last_name', 'date_of_birth', 'sex', 'parent_username']
+
+#     def create(self, validated_data):
+#         parent_username = validated_data.pop('parent')
+#         parent_user = User.objects.get(username=parent_username)
+
+#         child = Child.objects.create(
+#             parent=parent_user,
+#             **validated_data
+#         )
+#         return child
+    
+
+# class ChildSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=Child
+#         fields="__all__"
 class ChildSerializer(serializers.ModelSerializer):
+    parent_username = serializers.CharField(write_only=True, required=True)
+
     class Meta:
         model = Child
+        fields = ['id', 'first_name', 'last_name', 'date_of_birth', 'sex', 'parent_username']
+
+    def create(self, validated_data):
+        parent_username = validated_data.pop('parent_username', None)
+
+        try:
+            parent_user = User.objects.get(username=parent_username)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Parent user does not exist")
+
+        validated_data['parent'] = parent_user
+        child = Child.objects.create(**validated_data)
+        return child
+
+class VaxNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VaxName
         fields = '__all__'
 
-class VaxProgramSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VaxProgram
-        fields = '__all__'
 
 class VaxCycleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = VaxCycle
+        model = Vax_Cycle
         fields = '__all__'
 
 class VaxSerializer(serializers.ModelSerializer):
@@ -84,17 +121,4 @@ class VaxSerializer(serializers.ModelSerializer):
         model = Vax
         fields = '__all__'
 
-class VaxProgramNameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VaxProgramName
-        fields = '__all__'
 
-class VaxCycleNameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VaxCycleName
-        fields = '__all__'
-
-class VaxNameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VaxName
-        fields = '__all__'

@@ -4,18 +4,30 @@ from rest_framework.views import APIView
 from .serializer import *
 from rest_framework.response import Response
 from rest_framework import generics
-from rest_framework import mixins
-from rest_framework import viewsets
+
 from rest_framework import status
-from rest_framework.decorators import api_view,permission_classes,authentication_classes
+
 from rest_framework.authentication import BasicAuthentication,TokenAuthentication
-from rest_framework.permissions import IsAdminUser,IsAuthenticated
+
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.hashers import check_password
 from django.http import HttpResponse
 
 from django.core.mail import send_mail
 from babyvaccinepro.settings import EMAIL_HOST_USER
+
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+
+from chatterbot import ChatBot
+from chatterbot.trainers import ListTrainer
+from PyPDF2 import PdfReader
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import FAISS
+from langchain.chains.question_answering import load_qa_chain
+from langchain.llms import OpenAI
+import os
 
 
 
@@ -87,21 +99,6 @@ class ChildDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Child.objects.all()
     serializer_class = ChildSerializer
 
-class VaxProgramNameListCreateView(generics.ListCreateAPIView):
-    queryset = VaxProgramName.objects.all()
-    serializer_class = VaxProgramNameSerializer
-
-class VaxProgramNameDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = VaxProgramName.objects.all()
-    serializer_class = VaxProgramNameSerializer
-
-class VaxCycleNameListCreateView(generics.ListCreateAPIView):
-    queryset = VaxCycleName.objects.all()
-    serializer_class = VaxCycleNameSerializer
-
-class VaxCycleNameDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = VaxCycleName.objects.all()
-    serializer_class = VaxCycleNameSerializer
 
 class VaxNameListCreateView(generics.ListCreateAPIView):
     queryset = VaxName.objects.all()
@@ -111,29 +108,8 @@ class VaxNameDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = VaxName.objects.all()
     serializer_class = VaxNameSerializer
 
-class VaxProgramListCreateView(generics.ListCreateAPIView):
-    queryset = VaxProgram.objects.all()
-    serializer_class = VaxProgramSerializer
 
-class VaxProgramDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = VaxProgram.objects.all()
-    serializer_class = VaxProgramSerializer
 
-class VaxCycleListCreateView(generics.ListCreateAPIView):
-    queryset = VaxCycle.objects.all()
-    serializer_class = VaxCycleSerializer
-
-class VaxCycleDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = VaxCycle.objects.all()
-    serializer_class = VaxCycleSerializer
-
-class VaxListCreateView(generics.ListCreateAPIView):
-    queryset = Vax.objects.all()
-    serializer_class = VaxSerializer
-
-class VaxDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Vax.objects.all()
-    serializer_class = VaxSerializer
 
 
 
@@ -144,10 +120,130 @@ from django_celery_beat.models import PeriodicTask,CrontabSchedule
 import json
 
 
-#celery function to
+#celery function to send mail
 
 def send_mail_to_parent(request):
     send_mail_based_on_dates.delay() 
-    return HttpResponse("done")
+    return JsonResponse({"message": "Email sending initiated."}, status=200)
+
+# class SendMailToParentView(APIView):
+#     def post(self, request):
+#         send_mail_based_on_dates.delay()
+#         return Response({"message": "Email sending initiated."}, status=status.HTTP_200_OK)
 
 
+# class SendMailToParentView(APIView):
+#     def get(self, request):
+#         send_mail_based_on_dates.delay()
+#         return Response({"message": "Email sending initiated."}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+class VaxCycleAPIView(generics.ListCreateAPIView):
+   queryset = Vax_Cycle.objects.all()
+   serializer_class = VaxCycleSerializer
+    
+
+class VaxCycleDelete_Update(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Vax_Cycle.objects.all()
+    serializer_class = VaxCycleSerializer
+    
+class VaxAPIView(generics.ListCreateAPIView):
+   queryset=Vax.objects.all()
+   serializer_class=VaxSerializer
+    
+class VaxDelete_Update(generics.RetrieveUpdateDestroyAPIView):
+   queryset=Vax.objects.all()
+   serializer_class=VaxSerializer
+
+
+
+
+
+#vaccine dates
+    
+
+def vaccination_dates_view(request, child_id):
+    child = get_object_or_404(Child, pk=child_id)
+    vaccination_dates = child.get_vaccination_dates()
+
+    # Example: Convert vaccination dates to strings for JSON response
+    vaccination_dates_str = [str(date) for date in vaccination_dates]
+
+    return JsonResponse({'vaccination_dates': vaccination_dates_str})
+    
+
+# class VaccinationDatesAPIView(APIView):
+#     def get(self, request, child_id):
+#         child = get_object_or_404(Child, pk=child_id)
+#         vaccination_dates = child.get_vaccination_dates()
+
+#         # Example: Convert vaccination dates to strings for JSON response
+#         vaccination_dates_str = [str(date) for date in vaccination_dates]
+
+#         return Response({'vaccination_dates': vaccination_dates_str}, status=status.HTTP_200_OK)
+
+#chatbot
+
+# from babyvaccinepro.chat import get_response  # Import necessary functions or classes from chat.py
+
+# class ChatbotAPI(APIView):
+#     def post(self, request):
+#         user_input = request.data.get('user_input')  # Assuming input JSON contains 'user_input'
+#         if user_input.lower() == 'exit':
+#             return Response({"response": "Goodbye!"})
+
+#         bot_response = get_response(user_input)  # Use the function from chat.py
+#         return Response({"response": bot_response})
+    
+class ChatbotAPI(APIView):
+    def post(self, request):
+        user_input = request.data.get('user_input')
+
+        if user_input.lower() == 'exit':
+            return Response({"response": "Goodbye!"}, status=status.HTTP_200_OK)
+
+        # Your existing initialization and setup code here
+        os.environ["OPENAI_API_KEY"] = "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"
+        pdfreader = PdfReader(r"C:\Users\User\babycalender\babyvaccinepro\Dr.baby.pdf")
+        raw_text = ''
+        for page in pdfreader.pages:
+            content = page.extract_text()
+            if content:
+                raw_text += content
+
+        text_splitter = CharacterTextSplitter(
+            separator="\n",
+            chunk_size=800,
+            chunk_overlap=200,
+            length_function=len,
+        )
+        texts = text_splitter.split_text(raw_text)
+
+        embeddings = OpenAIEmbeddings()
+        document_search = FAISS.from_texts(texts, embeddings)
+
+        chain = load_qa_chain(OpenAI(), chain_type="stuff")
+
+        chatbot = ChatBot("DoctorBaby")
+        trainer = ListTrainer(chatbot)
+        trainer.train("chatterbot.corpus.english")
+
+        # Your existing response logic
+        def get_response(user_input):
+            if user_input.lower() in ["hi", "hello", "hey", "hy", "hai"]:
+                return "Hello, welcome to Dr Baby. How can I assist you today!"
+            elif user_input.lower() in ["bye", "by", "thank you", "thanks"]:
+                return "bye"
+            else:
+                docs = document_search.similarity_search(user_input)
+                return chain.run(input_documents=docs, question=user_input)
+
+        bot_response = get_response(user_input)
+        return Response({"response": bot_response}, status=status.HTTP_200_OK)

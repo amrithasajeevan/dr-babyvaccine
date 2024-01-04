@@ -5,12 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from dateutil.relativedelta import relativedelta
 
-# class Parent(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     first_name = models.CharField(max_length=64, null=True)
-#     last_name = models.CharField(max_length=64, null=True)
-#     email = models.CharField(max_length=64, null=True)
-#     create_date = models.DateTimeField(auto_now_add=True)
+
 
 
 class ChildManager(models.Manager):
@@ -42,6 +37,16 @@ class ChildManager(models.Manager):
         )
 
      
+vaccine_programs = {
+    'Program1': ['OPV', 'IPV/OPV', 'HepB', 'DPTw', 'Hib'],
+    'Program2': ['DPTw', 'IPV/OPV', 'Hib'],
+    'Program3': ['DPTw', 'IPV/OPV', 'Hib'],
+    'Program4': ['OPV', 'HepB'],
+    'Program5': ['OPV', 'MMR'],
+    'Program6': ['TCV'],
+    'Program7': ['HepA1']
+}
+
 class Child(models.Model):
     SEX = (
         ("Male", "Male"),
@@ -71,26 +76,25 @@ class Child(models.Model):
     @property
     def age_in_day(self):
         return (date.today() - self.date_of_birth).days  # returns age in days
-
+    
+    def get_vaccination_dates(self):
+        return [
+            
+            self.date_of_birth + timedelta(days=40),
+            self.date_of_birth + timedelta(days=67),
+            self.date_of_birth + timedelta(days=70),
+            self.date_of_birth + timedelta(days=89),
+            self.date_of_birth + timedelta(days=180),
+            self.date_of_birth + timedelta(days=304),
+            self.date_of_birth + timedelta(days=363)
+        ]
+        
     def __str__(self):
         return f'{self.last_name} {self.first_name} | {self.date_of_birth}'
         # return f'{self.last_name} {self.first_name} | {self.date_of_birth} | id:{self.id} | pid:{self.parent_id}'
     
 
-class VaxProgramName(models.Model):
-    """The model stores vaccination program names."""
-    vax_program_name = models.CharField(max_length=64)
 
-    def __str__(self):
-        return self.vax_program_name
-
-
-class VaxCycleName(models.Model):
-    """The model stores vaccination cycle names."""
-    vax_cycle_name = models.CharField(max_length=64)
-
-    def __str__(self):
-        return self.vax_cycle_name
 
 
 class VaxName(models.Model):
@@ -100,45 +104,19 @@ class VaxName(models.Model):
     def __str__(self):
         return self.vax_name
 
-
 class VaxProgram(models.Model):
-    """The model stores vaccination program names.
+    vax_program_name=models.CharField(max_length=64)
+    year=models.IntegerField()
+    Child=models.ForeignKey(Child,on_delete=models.CASCADE)
+    vaxes = models.ManyToManyField(VaxName) 
 
-    One program for year.
-    """
-    vax_program_name = models.ForeignKey(VaxProgramName, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.vax_program_name} | {self.child}'
-
-
-class VaxCycle(models.Model):
-    """The model stores vaccination cycle names.
-
-    For example: vaccination cycle for hepatitis B in 2005 year
-    contains 3 inoculations (1th day, 2th, 7th month).
-    """
-    name = models.ForeignKey(VaxCycleName, on_delete=models.CASCADE)
-    program = models.ForeignKey(VaxProgram, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.name} | {self.program}'
-
+class Vax_Cycle(models.Model):
+    vax_cycle_name=models.CharField(max_length=64)
+    program=models.ForeignKey(VaxProgram,on_delete=models.CASCADE)
 
 class Vax(models.Model):
-    """The model stores information about the inoculation procedure.."""
-    name = models.ForeignKey(
-        VaxName,
-        on_delete=models.CASCADE,
-        verbose_name='Name of the vaccination',
-    )
-    vaxcycle = models.ForeignKey(
-        VaxCycle,
-        on_delete=models.CASCADE,
-        verbose_name='Cycle for the vaccine'
-    )
+    name=models.ForeignKey(VaxName,on_delete=models.CASCADE)
+    vax_cycle=models.ForeignKey(Vax_Cycle,on_delete=models.CASCADE)
     exp_vax_date = models.DateField(
         verbose_name='Vaccination date required',
         help_text='YYYY-MM-DD',
@@ -156,8 +134,8 @@ class Vax(models.Model):
         blank=True
     )
 
-    def __str__(self):
-        return f'{self.name} | {self.vaxcycle}'
+
+
 
 
     
