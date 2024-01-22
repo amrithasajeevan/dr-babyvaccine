@@ -179,78 +179,6 @@ def vaccination_dates_view(request, child_id):
     return JsonResponse({'vaccination_dates': vaccination_dates_str})
     
 
-# class VaccinationDatesAPIView(APIView):
-#     def get(self, request, child_id):
-#         child = get_object_or_404(Child, pk=child_id)
-#         vaccination_dates = child.get_vaccination_dates()
-
-#         # Example: Convert vaccination dates to strings for JSON response
-#         vaccination_dates_str = [str(date) for date in vaccination_dates]
-
-#         return Response({'vaccination_dates': vaccination_dates_str}, status=status.HTTP_200_OK)
-
-#chatbot
-
-# from babyvaccinepro.chat import get_response  # Import necessary functions or classes from chat.py
-
-# class ChatbotAPI(APIView):
-#     def post(self, request):
-#         user_input = request.data.get('user_input')  # Assuming input JSON contains 'user_input'
-#         if user_input.lower() == 'exit':
-#             return Response({"response": "Goodbye!"})
-
-#         bot_response = get_response(user_input)  # Use the function from chat.py
-#         return Response({"response": bot_response})
-    
-# class ChatbotAPI(APIView):
-#     def post(self, request):
-#         user_input = request.data.get('user_input')
-
-#         if user_input.lower() == 'exit':
-#             # response = {"response": "Goodbye!"}
-#             # print(response)
-#             return Response({"response": "Goodbye!"}, status=status.HTTP_200_OK)
-            
-
-#         # Your existing initialization and setup code here
-#         os.environ["OPENAI_API_KEY"] = "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"
-#         pdfreader = PdfReader(r"C:\Users\User\babycalender\babyvaccinepro\Dr.baby.pdf")
-#         raw_text = ''
-#         for page in pdfreader.pages:
-#             content = page.extract_text()
-#             if content:
-#                 raw_text += content
-
-#         text_splitter = CharacterTextSplitter(
-#             separator="\n",
-#             chunk_size=800,
-#             chunk_overlap=200,
-#             length_function=len,
-#         )
-#         texts = text_splitter.split_text(raw_text)
-
-#         embeddings = OpenAIEmbeddings()
-#         document_search = FAISS.from_texts(texts, embeddings)
-
-#         chain = load_qa_chain(OpenAI(), chain_type="stuff")
-
-#         chatbot = ChatBot("DoctorBaby")
-#         trainer = ListTrainer(chatbot)
-#         trainer.train("chatterbot.corpus.english")
-
-#         # Your existing response logic
-#         def get_response(user_input):
-#             if user_input.lower() in ["hi", "hello", "hey", "hy", "hai"]:
-#                 return "Hello, welcome to Dr Baby. How can I assist you today!"
-#             elif user_input.lower() in ["bye", "by", "thank you", "thanks"]:
-#                 return "bye"
-#             else:
-#                 docs = document_search.similarity_search(user_input)
-#                 return chain.run(input_documents=docs, question=user_input)
-
-#         bot_response = get_response(user_input)
-#         return Response({"response": bot_response}, status=status.HTTP_200_OK)
-
 
 
 class ChatbotAPI(APIView):
@@ -296,3 +224,31 @@ class ChatbotAPI(APIView):
         else:
             docs = self.document_search.similarity_search(user_input)
             return self.chain.run(input_documents=docs, question=user_input)
+        
+
+#vaccine names
+        
+class VaccineListView(APIView):
+    def post(self,request):
+        a=VaccineNameSerializer(data=request.data)
+        if a.is_valid():
+            a.save()
+        return Response(a.data)
+    def get(self,request):
+        qs=vaccine_names.objects.all()
+        a=VaccineNameSerializer(qs,many=True)
+        return Response(a.data)
+    
+
+
+class VaccineProgramsListCreateView(generics.ListCreateAPIView):
+    queryset = VaccinePrograms.objects.all()
+    serializer_class = VaccineProgramSerializer
+
+class VaccineProgramsDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = VaccinePrograms.objects.all()
+    serializer_class = VaccineProgramSerializer
+
+
+
+

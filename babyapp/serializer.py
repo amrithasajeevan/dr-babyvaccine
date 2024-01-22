@@ -122,3 +122,15 @@ class VaxSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class VaccineNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model= vaccine_names
+        fields='__all__'
+
+
+class VaccineProgramSerializer(serializers.ModelSerializer):
+    vaccines = VaccineNameSerializer(many=True, read_only=True)
+    class Meta:
+        model=VaccinePrograms
+        fields=['id','vaccines']
+
