@@ -58,6 +58,7 @@ class Child(models.Model):
     sex = models.CharField(max_length=7, choices=SEX)
     parent = models.ForeignKey(User, on_delete=models.CASCADE)
     create_date = models.DateTimeField(auto_now_add=True)
+    Location=models.CharField(max_length=50,null=True,blank=True)
     objects = ChildManager()
 
     @property
@@ -90,7 +91,7 @@ class Child(models.Model):
         ]
         
     def __str__(self):
-        return f'{self.last_name} {self.first_name} | {self.date_of_birth}'
+        return  self.first_name
         # return f'{self.last_name} {self.first_name} | {self.date_of_birth} | id:{self.id} | pid:{self.parent_id}'
     
 
@@ -150,4 +151,63 @@ class vaccine_names(models.Model):
 class VaccinePrograms(models.Model):
     vaccines = models.ManyToManyField(vaccine_names)
 
+class Hospitals(models.Model):
+    name = models.CharField(max_length=255,blank=True,null=True)
+    location=models.CharField(max_length=50,blank=True,null=True)
+    slots_available = models.IntegerField(null=True,blank=True)
+    programs_available = models.ManyToManyField(VaccinePrograms,default=None)
+    
+    def __str__(self):
+        return self.name
+
+
+# class VaccineBooking(models.Model):
+#     STATUS_CHOICES = [
+#         ("Taken", "Taken"),
+#         ("Pending", "Pending"),
+#     ]
+
+#     parent_name = models.ForeignKey(Child, on_delete=models.CASCADE)
+#     parent_email = models.EmailField()
+#     hospital = models.ForeignKey(Hospitals, on_delete=models.CASCADE)
+#     vaccine_program = models.ForeignKey(VaccinePrograms, on_delete=models.CASCADE)
+#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Pending")
+#     booking_date = models.DateTimeField(auto_now_add=True)
+
+#     def save(self, *args, **kwargs):
+#         # If booking_date is not null, mark the program as "Taken"
+#         if self.booking_date:
+#             self.status = "Taken"
+#         else:
+#             # If booking_date is null, mark other programs as "Pending"
+#             VaccineBooking.objects.filter(
+#                 parent_name=self.parent_name,
+#                 hospital=self.hospital,
+#             ).exclude(vaccine_program=self.vaccine_program).update(status="Pending")
+
+#         super().save(*args, **kwargs)
+    
+
+
+class VaccineBooking(models.Model):
+    parent_name = models.ForeignKey(User, on_delete=models.CASCADE)
+    parent_email = models.EmailField()
+    hospital = models.ForeignKey(Hospitals, on_delete=models.CASCADE)
+    vaccine_program = models.ForeignKey(VaccinePrograms, on_delete=models.CASCADE)
+    booking_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.parent_name
+    
+
+# class VaccineStatus(models.Model):
+#     program = models.OneToOneField(VaccinePrograms, on_delete=models.CASCADE)
+#     is_taken = models.BooleanField(default=False)
+#     parent_name = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+
+class VaccineStatus(models.Model):
+    child_name = models.ForeignKey(Child, on_delete=models.CASCADE)
+    program = models.ForeignKey(VaccinePrograms, on_delete=models.CASCADE)
+    is_taken = models.BooleanField(default=False)
     

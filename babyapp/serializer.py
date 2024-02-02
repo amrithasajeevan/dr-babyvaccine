@@ -5,6 +5,7 @@ from  rest_framework import serializers
 
 from rest_framework import serializers
 import re 
+from rest_framework import status
 
 #serializer for registration
 class UserSerializer(serializers.ModelSerializer):
@@ -91,7 +92,7 @@ class ChildSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Child
-        fields = ['id', 'first_name', 'last_name', 'date_of_birth', 'sex', 'parent_username']
+        fields = ['id', 'first_name', 'last_name', 'date_of_birth', 'sex', 'parent_username','Location']
 
     def create(self, validated_data):
         parent_username = validated_data.pop('parent_username', None)
@@ -134,3 +135,82 @@ class VaccineProgramSerializer(serializers.ModelSerializer):
         model=VaccinePrograms
         fields=['id','vaccines']
 
+class HospitalsSerializer(serializers.ModelSerializer):
+    programs_available = serializers.PrimaryKeyRelatedField(
+        queryset=VaccinePrograms.objects.all(),
+        many=True,
+        required=False
+    )
+    programs_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hospitals
+        fields = ('id', 'name', 'location', 'slots_available', 'programs_available', 'programs_details')
+
+    def get_programs_details(self, obj):
+        programs_available = obj.programs_available.all()
+        return [{'vaccines': [vaccine.vaccine for vaccine in program.vaccines.all()]} for program in programs_available]
+
+    def create(self, validated_data):
+        programs_data = validated_data.pop('programs_available', [])
+        hospital = Hospitals.objects.create(**validated_data)
+
+        for program_instance in programs_data:
+            hospital.programs_available.add(program_instance)
+
+        return hospital
+
+
+
+class VaccineBookingSerializer(serializers.ModelSerializer):
+    parent_name = serializers.CharField(write_only=True)
+    parent_email = serializers.EmailField(write_only=True)
+    booking_date = serializers.DateTimeField(read_only=True)
+    parent_id = serializers.IntegerField(read_only=True, source='parent_name.id')
+    hospital_name = serializers.CharField(read_only=True, source='hospital.name')  # Assuming 'name' is the field on Hospitals model
+
+    class Meta:
+        model = VaccineBooking
+        fields = ['id', 'parent_name', 'parent_email', 'hospital_name', 'vaccine_program', 'booking_date', 'parent_id']
+
+    def create(self, validated_data):
+        parent_name = validated_data.pop('parent_name')
+        parent_email = validated_data.pop('parent_email')
+
+        # Find the user by username or any other criteria
+        user = User.objects.get(username=parent_name)
+
+        # Retrieve the VaccinePrograms instance based on the provided ID
+        program_id = validated_data.get('vaccine_program').id  # Extract ID from VaccinePrograms object
+
+        try:
+            vaccine_program = VaccinePrograms.objects.get(pk=program_id)
+        except VaccinePrograms.DoesNotExist:
+            raise serializers.ValidationError({'message': 'Vaccine program not found'}, code='program_not_found')
+
+        # Create the VaccineBooking instance with the found user and program
+        vaccine_booking = VaccineBooking.objects.create(
+            parent_name=user,
+            parent_email=parent_email,
+            hospital=validated_data['hospital'],
+            vaccine_program=vaccine_program  # Use the retrieved instance
+        )
+
+        return vaccine_booking
+
+
+# class VaccineStatusSerializer(serializers.ModelSerializer):
+#     program = VaccineProgramSerializer()
+
+#     class Meta:
+#         model = VaccineStatus
+#         fields = ['id', 'program', 'is_taken']
+    
+
+class VaccineStatusSerializer(serializers.ModelSerializer):
+    child_name = serializers.CharField(source='child_name.first_name', read_only=True)
+    class Meta:
+        model = VaccineStatus
+        fields = ['id', 'program', 'child_name', 'is_taken']
+
+    

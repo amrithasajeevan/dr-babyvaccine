@@ -47,8 +47,15 @@ urlpatterns=[
 
 #set vaccine programs
 
- path('vaccine_programs/', VaccineProgramsListCreateView.as_view(), name='vaccine-programs-list-create'),
+    path('vaccine_programs/', VaccineProgramsListCreateView.as_view(), name='vaccine-programs-list-create'),
     path('vaccine_programs_update/<int:pk>/', VaccineProgramsDetailView.as_view(), name='vaccine-programs-detail'),
+    path('hospitals/', HospitalsAPIView.as_view(), name='hospitals-list'),
+    path('vaccinebook/',VaccineBookingList.as_view(),name='book'),
+    path('vaccinestatus/', VaccineProgramsAPI.as_view(), name='vaccine-programs'),
+    path('setvaccinestatus/<int:pk>/', VaccineProgramsAPI.as_view(), name='vaccine-program-detail'),
+     
+
+
 ]
 
 

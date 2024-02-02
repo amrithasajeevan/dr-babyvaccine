@@ -31,7 +31,8 @@ def send_mail_based_on_dates(self):
                 (child.date_of_birth + timedelta(days=89)): [4],
                 (child.date_of_birth + timedelta(days=180)): [5],
                 (child.date_of_birth + timedelta(days=304)): [6],
-                (child.date_of_birth + timedelta(days=363)): [7]
+                (child.date_of_birth + timedelta(days=363)): [7],
+                
             }
 
             for rev_date, program_ids in health_review_program_mapping.items():

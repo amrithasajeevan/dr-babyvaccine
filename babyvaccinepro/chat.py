@@ -12,7 +12,7 @@ from langchain.llms import OpenAI
 os.environ["OPENAI_API_KEY"] = "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"
 
 # Read text from PDF
-pdfreader = PdfReader(r"C:\Users\User\babycalender\babyvaccinepro\Dr.baby.pdf")
+pdfreader = PdfReader(r"C:\Users\User\Dr-baby\dr-babyvaccine\Dr.baby.pdf")
 raw_text = ''
 for page in pdfreader.pages:
     content = page.extract_text()
